@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ArcBallista</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Courier New', monospace;
+            color: #33ff33;
+            background-color: #000;
+        }
+        canvas {
+            display: block;
+        }
+        #ui-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        .ui-element {
+            pointer-events: auto;
+        }
+        #home-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        #game-title {
+            font-size: 5em;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px #33ff33;
+        }
+        #game-subtitle {
+            font-size: 1.5em;
+            margin-bottom: 40px;
+        }
+        .menu-container {
+            background-color: rgba(0, 20, 0, 0.8);
+            border: 2px solid #33ff33;
+            border-radius: 10px;
+            padding: 20px;
+            width: 80%;
+            max-width: 600px;
+        }
+        .menu-item {
+            margin: 15px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .menu-label {
+            font-size: 1.2em;
+        }
+        .menu-input {
+            background-color: rgba(0, 40, 0, 0.8);
+            border: 1px solid #33ff33;
+            color: #33ff33;
+            padding: 8px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+        }
+        .menu-button {
+            background-color: rgba(0, 40, 0, 0.8);
+            border: 1px solid #33ff33;
+            color: #33ff33;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 1.2em;
+            margin: 10px;
+        }
+        .menu-button:hover {
+            background-color: rgba(0, 80, 0, 0.8);
+            box-shadow: 0 0 10px #33ff33;
+        }
+        #start-button {
+            margin-top: 30px;
+            padding: 15px 40px;
+            font-size: 1.5em;
+        }
+        #hud {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background-color: rgba(0, 20, 0, 0.7);
+            border: 1px solid #33ff33;
+            border-radius: 5px;
+            padding: 10px;
+            display: none;
+        }
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background-color: rgba(0, 20, 0, 0.7);
+            border: 1px solid #33ff33;
+            border-radius: 5px;
+            padding: 10px;
+            display: none;
+        }
+        .control-item {
+            margin: 10px 0;
+        }
+        #commander-chart {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            height: 90%;
+            background-color: rgba(0, 20, 0, 0.9);
+            border: 2px solid #33ff33;
+            border-radius: 10px;
+            display: none;
+            z-index: 50;
+            overflow: auto;
+        }
+        .chart-section {
+            padding: 15px;
+            border-bottom: 1px solid #33ff33;
+        }
+        #chart-formulas {
+            font-family: monospace;
+            white-space: pre;
+        }
+        #chart-map {
+    width: 38%;         /* Optional: adjust as needed */
+    height: 400px;
+    position: relative;
+    background-color: rgba(0, 40, 0, 0.5);
+    border: 1px solid #33ff33;
+    margin: 10px auto;  /* Centers the element horizontally on the page */
+    display: flex;      /* Enables Flexbox */
+    justify-content: center; /* Centers child content horizontally */
+    align-items: center;     /* Centers child content vertically */
+}
+
+        #chart-notes {
+            display: flex;
+            flex-direction: column;
+            width: 38%;         /* Optional: adjust as needed */
+    height: 400px;
+    position: relative;
+    background-color: rgba(0, 40, 0, 0.5);
+    border: 1px solid #33ff33;
+    margin: 10px auto;  /* Centers the element horizontally on the page */
+    display: flex;      /* Enables Flexbox */
+    justify-content: center; /* Centers child content horizontally */
+    align-items: center;   
+        }
+        #notes-textarea {
+            background-color: rgba(0, 40, 0, 0.8);
+            border: 1px solid #33ff33;
+            color: #33ff33;
+            padding: 10px;
+            height: 100px;
+            font-family: 'Courier New', monospace;
+            margin-bottom: 10px;
+        }
+        #calculator {
+            display: flex;
+            flex-wrap: wrap;
+            max-width: 300px;
+        }
+        .calc-button {
+            width: 50px;
+            height: 40px;
+            margin: 2px;
+            background-color: rgba(0, 40, 0, 0.8);
+            border: 1px solid #33ff33;
+            color: #33ff33;
+            cursor: pointer;
+        }
+        #calc-display {
+            width: 100%;
+            height: 40px;
+            background-color: rgba(0, 40, 0, 0.8);
+            border: 1px solid #33ff33;
+            color: #33ff33;
+            margin-bottom: 5px;
+            padding: 5px;
+            text-align: right;
+            font-family: monospace;
+        }
+        #bearing-ruler {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            border: 1px dashed #33ff33;
+            opacity: 0.7;
+            display: none;
+            cursor: crosshair;
+    user-select: none;
+    
+        }
+        .bearing-measurement-line {
+    pointer-events: none;
+}
+        #game-over {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        #game-over-title {
+            font-size: 4em;
+            color: #ff3333;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px #ff3333;
+        }
+        #game-over-stats {
+            font-size: 1.5em;
+            margin-bottom: 30px;
+        }
+        #tutorial-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            height: 80%;
+            background-color: rgba(0, 20, 0, 0.9);
+            border: 2px solid #33ff33;
+            border-radius: 10px;
+            display: none;
+            z-index: 60;
+            padding: 20px;
+            overflow: auto;
+        }
+        .close-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(40, 0, 0, 0.8);
+            border: 1px solid #ff3333;
+            color: #ff3333;
+            width: 30px;
+            height: 30px;
+            border-radius: 15px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+        }
+        #timer-display {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: rgba(0, 20, 0, 0.7);
+            border: 1px solid #33ff33;
+            border-radius: 5px;
+            padding: 10px;
+            font-size: 1.5em;
+            display: none;
+        }
+        #message-log {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background-color: rgba(0, 20, 0, 0.7);
+            border: 1px solid #33ff33;
+            border-radius: 5px;
+            padding: 10px;
+            width: 400px;
+            height: 150px;
+            overflow-y: auto;
+            display: none;
+        }
+        .message {
+            margin-bottom: 5px;
+            font-size: 0.9em;
+        }
+        #shell-counter {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 20, 0, 0.7);
+            border: 1px solid #33ff33;
+            border-radius: 5px;
+            padding: 10px;
+            font-size: 1.2em;
+            display: none;
+        }
+    .tut {
+        z-index: 99999;
+    }
+    /* ... existing styles ... */
+
+    #bullet-rack {
+            position: fixed; /* Or absolute within ui-container */
+            margin-top: 500px;
+            left: 20px; /* Adjust position as needed */
+            display: flex;
+            flex-direction: column;
+            gap: 10px; /* Reduced gap */
+            padding: 10px;
+            background: rgba(0, 20, 0, 0.7); /* Match game theme */
+            border: 1px solid #33ff33; /* Match game theme */
+            border-radius: 5px; /* Match game theme */
+            box-shadow: 0 0 8px rgba(51, 255, 51, 0.3); /* Match game theme */
+            pointer-events: auto; /* Allow interaction */
+            z-index: 1; /* Ensure it's above the canvas but below menus */
+        }
+
+        .bullet {
+            width: 40px; /* Reduced size */
+            height: 40px; /* Reduced size */
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #f0f0f0;
+            font-size: 11px; /* Reduced font size */
+            font-weight: bold;
+            cursor: grab;
+            background: radial-gradient(circle at 30% 30%, #aaa, #555); /* Keep metallic look */
+            border: 1px solid #444;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.7), inset 0 0 2px rgba(255,255,255,0.1);
+            position: relative;
+            user-select: none;
+        }
+        .bullet::after {
+      content: '';
+      position: absolute;
+      top: 10%; left: 20%;
+      width: 60%; height: 2px;
+      background: rgba(255,255,255,0.05);
+      transform: rotate(15deg);
+    }
+        .bullet.FMJ { background: radial-gradient(circle at 30% 30%, #ccc, #777); } /* Slight color variations */
+        .bullet.API { background: radial-gradient(circle at 30% 30%, #f00, #a00); }
+        .bullet.ETR { background: radial-gradient(circle at 30% 30%, #00f, #00a); }
+
+
+        .bullet .scratch {
+            position: absolute;
+            top: 15%; /* Adjusted position */
+            left: 25%; /* Adjusted position */
+            width: 50%; /* Adjusted size */
+            height: 1px; /* Reduced thickness */
+            background: rgba(255,255,255,0.08); /* Match game theme */
+            transform: rotate(15deg);
+        }
+
+        #chamber-container {
+            position: fixed; /* Or absolute within ui-container */
+            top: 500px; /* Adjust position as needed */
+            right: 20px; /* Adjust position as needed */
+            width: 80px; /* Reduced size */
+            height: 150px; /* Reduced size */
+            background: rgba(0, 20, 0, 0.7); /* Match game theme */
+            border: 1px solid #33ff33; /* Match game theme */
+            border-radius: 5px; /* Match game theme */
+            box-shadow: 0 0 8px rgba(51, 255, 51, 0.3); /* Match game theme */
+            overflow: hidden;
+            pointer-events: auto; /* Allow interaction */
+            flex-shrink: 0;
+            z-index: 1; /* Ensure it's above the canvas but below menus */
+        }
+
+        #chamber-interior {
+            position: absolute;
+            top: 0px; /* Adjusted based on lever height */
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 40, 0, 0.5); /* Match game theme */
+            z-index: 1;
+            pointer-events: auto;
+            box-shadow: inset 0 0 4px #000;
+        }
+
+        #chamber-slot {
+            width: 40px; /* Reduced size */
+            height: 40px; /* Reduced size */
+            border: 2px dashed #666;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+  
+        #chamber-interior.open #chamber-slot {
+             border-color: #33ff33;
+             background: #454545;
+        }
+
+    </style>
+</head>
+<body>
+    <div id="tutorial-container" class="ui-element tut">
+        <div class="close-button" id="close-tutorial">X</div>
+        <h2>ArcBallista - Tutorial</h2>
+        <div class="tutorial-section">
+            <h3>Mission Overview</h3>
+            <p>Welcome to ArcBallista, an artillery targeting simulation. Your mission is to accurately calculate firing solutions to eliminate enemy targets using trigonometry and ballistics formulas.</p>
+            
+            <h3>Key Positions</h3>
+            <ul>
+                <li><strong>Battery (X)</strong>: Your artillery position</li>
+                <li><strong>Forward Observer (Y)</strong>: Scout who can see the target</li>
+                <li><strong>Target (Z)</strong>: Enemy position to be eliminated</li>
+            </ul>
+            
+            <h3>Calculating the Solution</h3>
+            <p>You'll need to use the Law of Cosines to determine the distance from the Forward Observer to the Target:</p>
+            <pre>a² = b² + c² - 2bc·cos(X)</pre>
+            <p>Where:</p>
+            <ul>
+                <li>a = Distance from Forward Observer to Target (what you're solving for)</li>
+                <li>b = Distance from Battery to Target</li>
+                <li>c = Distance from Battery to Forward Observer</li>
+                <li>X = Angle at the Battery position</li>
+            </ul>
+            
+            <h3>Artillery Controls</h3>
+            <ul>
+                <li><strong>Elevation</strong>: Vertical angle of the gun barrel (affects range)</li>
+                <li><strong>Azimuth</strong>: Horizontal direction to aim (compass bearing)</li>
+            </ul>
+            
+            <h3>Ballistics Formula</h3>
+            <p>To determine the correct elevation angle:</p>
+            <pre>Elevation θ = 4 × (distance / 1400ft)</pre>
+            
+            <h3>Azimuth Calculation</h3>
+            <p>Use the bearing ruler in the Commander Chart to determine the correct azimuth from your position to the target.</p>
+            
+            <h3>Target Types</h3>
+            <h4>Aircraft</h4>
+            <p>Use Flak Shells: Anti-aircraft shells that burst into a cloud of heavy, slow-moving fragments.</p>
+            
+            <h4>Armored Vehicles</h4>
+            <p>Use Armor-Piercing Capped: Shells with a softer metal cap to improve penetration against sloped armor and prevent shattering on impact.</p>
+            
+            <h4>Buildings</h4>
+            <p>Use HE Concussion: High-Explosive shells designed to create a powerful blast wave for structural damage to buildings.</p>
+            
+            <h3>Difficulty Levels</h3>
+            <ul>
+                <li><strong>Relaxed mode 😄</strong>: 5 shells, trajectory guide, no time limit</li>
+                <li><strong>Elementary mode 😊</strong>: 3 shells, trajectory guide, 19 minutes</li>
+                <li><strong>Humane mode 🙂</strong>: 2 shells, no trajectory guide, 13 minutes</li>
+                <li><strong>Computer Science student mode 😟</strong>: 1 shell, no trajectory guide, 5 minutes, 3x score</li>
+                <li><strong>World War 2 Veteran 😡</strong>: 1 shell, no trajectory guide, 2 minutes, 10x score</li>
+            </ul>
+            
+            <h3>Controls</h3>
+            <ul>
+                <li>Hold left mouse button to rotate camera (cannot go below ground)</li>
+                <li>Use elevation and azimuth controls to aim</li>
+                <li>Press FIRE to launch shell</li>
+                <li>Open Commander Chart for calculations and notes</li>
+            </ul>
+            
+            <p>Good luck, Commander!</p>
+        </div>
+    </div>
+    <div id="ui-container">
+        <div id="home-screen" class="ui-element">
+            <h1 id="game-title">ARC COMMAND</h1>
+            <h2 id="game-subtitle">Precision Artillery Targeting System</h2>
+            <div class="menu-container">
+                <div class="menu-item">
+                    <span class="menu-label">Battery Name:</span>
+                    <input type="text" id="battery-name-input" class="menu-input" value="Alpha Battery">
+                </div>
+                <div class="menu-item">
+                    <span class="menu-label">Difficulty:</span>
+                    <select id="difficulty-select" class="menu-input">
+                        <option value="easiest">Relaxed mode 😄</option>
+                        <option value="easy">Elementary mode 😊</option>
+                        <option value="medium" selected>Humane mode 🙂</option>
+                        <option value="hard">Computer Science student mode 😟</option>
+                        <option value="hardest">World War 2 Veteran 😡</option>
+                    </select>
+                </div>
+                <div style="display: flex; justify-content: center; margin-top: 20px;">
+                    <button id="tutorial-button" class="menu-button">Tutorial</button>
+                </div>
+                <div style="display: flex; justify-content: center;">
+                    <button id="start-button" class="menu-button">START MISSION</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="hud" class="ui-element">
+            <div id="mission-info"></div>
+        </div>
+
+        <div id="controls" class="ui-element">
+            <div class="control-item">
+                <label for="elevation-input">Elevation: </label>
+                <input type="number" id="elevation-input" min="0" max="30" step="0.01" value="0">
+                <input type="range" id="elevation-slider" min="0" max="30" step="0.01" value="0">
+            </div>
+            <div class="control-item">
+                <label for="azimuth-input">Azimuth: </label>
+                <input type="number" id="azimuth-input" min="0" max="360" step="0.01" value="0">
+                <input type="range" id="azimuth-slider" min="0" max="360" step="0.01" value="0">
+            </div>
+            <div class="control-item">
+                <button id="fire-button" class="menu-button">FIRE</button>
+                <button id="chart-button" class="menu-button">COMMANDER CHART</button>
+                <button id="give-up-button" class="menu-button">GIVE UP?</button>
+            </div>
+        </div>
+        <div id="ui-container">
+            <div id="bullet-rack" class="ui-element">
+                </div>
+    
+            <div id="chamber-container" class="ui-element">
+                <div id="chamber-interior">
+                    <div id="chamber-slot"></div>
+                </div>
+            </div>
+    
+            </div>
+        <div id="commander-chart" class="ui-element">
+            <div class="close-button" id="close-chart">X</div>
+            <div class="chart-section">
+                <h2>Formulas and Variables</h2>
+                <pre id="chart-formulas"></pre>
+            </div>
+            <div class="chart-section">
+                <h2>Tactical Map</h2>
+                <div id="chart-map">
+                    <div id="bearing-ruler"></div>
+                </div>
+                <button id="toggle-triangle" class="menu-button">Toggle Triangle</button>
+                <button id="toggle-ruler" class="menu-button">Toggle Bearing Ruler</button>
+            </div>
+            <div class="chart-section">
+                <h2>Notes and Calculator</h2>
+                <div id="chart-notes"><br><br>
+                    <textarea id="notes-textarea" placeholder="Mission notes..."></textarea>
+                    <div id="calculator">
+                        <div id="calc-display">0</div>
+                        <button class="calc-button">7</button>
+                        <button class="calc-button">8</button>
+                        <button class="calc-button">9</button>
+                        <button class="calc-button">/</button>
+                        <button class="calc-button">sin</button>
+                        <button class="calc-button">4</button>
+                        <button class="calc-button">5</button>
+                        <button class="calc-button">6</button>
+                        <button class="calc-button">*</button>
+                        <button class="calc-button">cos</button>
+                        <button class="calc-button">1</button>
+                        <button class="calc-button">2</button>
+                        <button class="calc-button">3</button>
+                        <button class="calc-button">-</button>
+                        <button class="calc-button">tan</button>
+                        <button class="calc-button">0</button>
+                        <button class="calc-button">.</button>
+                        <button class="calc-button">(</button>
+                        <button class="calc-button">)</button>
+                        <button class="calc-button">+</button>
+                        <button class="calc-button">=</button>
+                        <button class="calc-button">C</button>
+                    </div><br>
+                </div>
+            </div>
+            <div class="chart-section">
+                <h2>Forward Observer Report</h2>
+                <div id="fo-report"></div>
+            </div>
+        </div>
+
+       <div class="rack" id="bullet-rack">
+            </div>
+            <div id="ui-container">
+                <div id="bullet-rack" class="ui-element">
+                    </div>
+        
+                <div id="chamber-container" >
+                    <div id="chamber-interior">
+                        <div id="chamber-slot"></div>
+                    </div>
+                </div>
+        
+                </div>
+
+        <div id="timer-display" class="ui-element">Time: 00:00</div>
+        <div id="message-log" class="ui-element"></div>
+        <div id="shell-counter" class="ui-element">Shells: 0</div>
+
+        <div id="game-over" class="ui-element">
+            <div id="game-over-title">MISSION FAILED</div>
+            <div id="game-over-stats"></div>
+            <button id="restart-button" class="menu-button">RETURN TO BASE</button>
+        </div>
+    </div>
+
+<script type="module" src="./ArcBallista.js"></script>
+
+
+</body>
+</html>
+
+
