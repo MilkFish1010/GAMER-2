@@ -1402,60 +1402,52 @@ function generateMission() {
     const targetTypes = ['aircraft', 'armoredVehicles', 'buildings'];
     gameState.targetType = targetTypes[Math.floor(Math.random() * targetTypes.length)];
     gameState.shellType = shellTypes[gameState.targetType];
-  
-    // Set battery at origin
     gameState.positions.battery.set(0, 0, 0);
-  
-    // Set a safe max distance to avoid overflowing chart
-    const maxMapDistance = 350; // in pixels
-    const scale = 350 / maxMapDistance; // actual game units per px
-    const maxWorldDistance = maxMapDistance / scale;
-  
-    // Generate target direction and distance (closer to center)
-    const targetAngle = Math.random() * Math.PI * 2;
-    const targetDistance = 600 + Math.random() * 600; // 600-1200ft
-    const targetX = Math.cos(targetAngle) * targetDistance;
-    const targetZ = Math.sin(targetAngle) * targetDistance;
-    gameState.positions.target.set(targetX, 0, targetZ);
-    gameState.distances.batteryToTarget = targetDistance;
-  
-    // Place FO somewhere between battery and target (closer to target)
-    const foFraction = 0.6 + Math.random() * 0.3; // 60% to 90% toward target
-    const foX = targetX * foFraction;
-    const foZ = targetZ * foFraction;
-    gameState.positions.forwardObserver.set(foX, 0, foZ);
-  
-    // Recalculate distances
+    const foDistance = 1000 + Math.random() * 1000;
+    const foAngle = Math.random() * Math.PI * 2;
+    gameState.positions.forwardObserver.set(
+    Math.cos(foAngle) * foDistance,
+    0,
+    Math.sin(foAngle) * foDistance
+    );
     const batteryToFODistance = gameState.positions.forwardObserver.distanceTo(gameState.positions.battery);
-    const foToTargetDistance = gameState.positions.forwardObserver.distanceTo(gameState.positions.target);
-  
     gameState.distances.batteryToFO = batteryToFODistance;
-    gameState.distances.foToTarget = foToTargetDistance;
-  
-    // Use Law of Cosines to find angle at FO
-    const a = foToTargetDistance;
-    const b = batteryToTargetDistance;
-    const c = batteryToFODistance;
-    const angleAtFO = Math.acos((b ** 2 + c ** 2 - a ** 2) / (2 * b * c));
-    const angleAtBattery = Math.acos((a ** 2 + c ** 2 - b ** 2) / (2 * a * c));
-    const angleAtTarget = Math.acos((b ** 2 + a ** 2 - c ** 2) / (2 * b * a));
-  
+    const angleAtFO = (90 + Math.random() * 60) * Math.PI / 180;
     gameState.angles.atFO = angleAtFO * 180 / Math.PI;
+    const batteryToTargetDistance = 800 + Math.random() * 1200;
+    gameState.distances.batteryToTarget = batteryToTargetDistance;
+    const foToTargetDistance = Math.sqrt(
+    Math.pow(batteryToFODistance, 2) + 
+    Math.pow(batteryToTargetDistance, 2) - 
+    2 * batteryToFODistance * batteryToTargetDistance * Math.cos(angleAtFO)
+    );
+    gameState.distances.foToTarget = foToTargetDistance;
+    const angleAtBattery = Math.acos(
+    (Math.pow(batteryToFODistance, 2) + Math.pow(batteryToTargetDistance, 2) - Math.pow(foToTargetDistance, 2)) /
+    (2 * batteryToFODistance * batteryToTargetDistance)
+    );
     gameState.angles.atBattery = angleAtBattery * 180 / Math.PI;
+    const angleAtTarget = Math.acos(
+    (Math.pow(batteryToTargetDistance, 2) + Math.pow(foToTargetDistance, 2) - Math.pow(batteryToFODistance, 2)) /
+    (2 * batteryToTargetDistance * foToTargetDistance)
+    );
     gameState.angles.atTarget = angleAtTarget * 180 / Math.PI;
-  
-    // Solution
-    gameState.solution.elevation = 4 * (gameState.distances.batteryToTarget / 1400);
-  
+    const batteryToFODirection = new THREE.Vector3().subVectors(
+    gameState.positions.forwardObserver,
+    gameState.positions.battery
+    ).normalize();
+    const targetDirection = new THREE.Vector3(batteryToFODirection.x, 0, batteryToFODirection.z);
+    targetDirection.applyAxisAngle(new THREE.Vector3(0, 1, 0), angleAtBattery);
+    gameState.positions.target.copy(targetDirection.multiplyScalar(batteryToTargetDistance));
+    gameState.solution.elevation = 4 * (batteryToTargetDistance / 1400);
     const targetVector = new THREE.Vector3().subVectors(
-      gameState.positions.target,
-      gameState.positions.battery
+    gameState.positions.target,
+    gameState.positions.battery
     );
     gameState.solution.azimuth = (Math.atan2(targetVector.x, targetVector.z) * 180 / Math.PI + 360) % 360;
-  
     createTargetMesh();
     updateMissionInfo();
-  }
+    }
 function updateMissionInfo() {
     const rank = getMilitaryRank(gameState.score)
 missionInfo.innerHTML = `
